@@ -7,7 +7,7 @@
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0fdf4; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
         .calculator-card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(34, 139, 34, 0.15); width: 100%; max-width: 500px; border-top: 8px solid #2e7d32; }
-        h2 { color: #1b5e20; margin-bottom: 25px; font-size: 28px; text-align: center; line-height: 1.2; font-weight: bold; }
+        h2 { color: #1b5e20; margin-bottom: 25px; font-size: 28px; text-align: center; line-height: 1.1; font-weight: bold; }
         .sub-title { font-size: 18px; display: block; margin-top: 5px; font-weight: normal; color: #388e3c; }
         .input-group { margin-bottom: 20px; text-align: right; }
         label { display: block; font-weight: 600; margin-bottom: 8px; color: #388e3c; }
@@ -66,25 +66,23 @@
 
     <div id="result"></div>
 
-    <div class="clock-footer" id="liveClock">
-        טוען שעה נוכחית...
-    </div>
+    <div class="clock-footer" id="liveClock">טוען שעה נוכחית...</div>
 </div>
 
 <script>
-    // פונקציה לעדכון השעון בזמן אמת
+    // פונקציית שעון מעודכנת
     function startClock() {
-        function update() {
+        const update = () => {
             const now = new Date();
-            const options = { dateStyle: 'short', timeStyle: 'medium' };
-            document.getElementById('liveClock').innerText = `שעה נוכחית: ${now.toLocaleString('he-IL', options)}`;
-        }
+            const timeStr = now.toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'medium' });
+            document.getElementById('liveClock').innerText = `שעה נוכחית: ${timeStr}`;
+        };
         setInterval(update, 1000);
         update();
     }
-    window.onload = startClock;
+    document.addEventListener('DOMContentLoaded', startClock);
 
-    // נתוני חניונים מהמקורות
+    // נתוני המחירונים מהמקורות
     const parkingData = {
         klal: { type: 'tiered', tiers: [{m: 30, r: 0.6}, {m: 180, r: 0.5}], max: 93, evening: {start: 19, rate: 0.35, max: 50} },
         ginat: { type: 'tiered', tiers: [{m: 30, r: 0.6}, {m: 180, r: 0.5}], max: 93, evening: {start: 19, rate: 0.35, max: 50} },
@@ -122,7 +120,6 @@
         const initialEntry = new Date(entryStr);
         let current = new Date(initialEntry);
         const now = new Date();
-        
         if (current > now) { alert("זמן הכניסה לא יכול להיות בעתיד"); return; }
 
         let totalCost = 0;
@@ -150,15 +147,17 @@
                         eveningMins = Math.floor((segmentEnd - Math.max(current, dayLimit)) / 60000);
                     } else { eveningMins = mins; }
                     
-                    let dayCost = 0;
+                    let dayPartCost = 0;
                     if (dayMins > 0) {
-                        if (dayMins <= 30) dayCost = dayMins * 0.55;
-                        else if (dayMins <= 60) dayCost = (30 * 0.55) + (dayMins - 30) * 0.45;
-                        else dayCost = (30 * 0.55) + (30 * 0.45) + (dayMins - 60) * 0.55;
-                        dayCost = Math.min(dayCost, 92);
+                        if (dayMins <= 30) dayPartCost = dayMins * 0.55;
+                        else if (dayMins <= 60) dayPartCost = (30 * 0.55) + (dayMins - 30) * 0.45;
+                        else dayPartCost = (30 * 0.55) + (30 * 0.45) + (dayMins - 60) * 0.55;
                     }
-                    let eveningCost = (eveningMins > 0) ? Math.min(eveningMins * 0.35, 35) : 0;
-                    segmentCost = dayCost + eveningCost;
+                    let eveningPartCost = (eveningMins > 0) ? (eveningMins * 0.35) : 0;
+                    
+                    // תיקון: תקרה אחת לכל הסבב (92 אם נכנס ביום, 35 אם בערב בלבד)
+                    let currentMax = (current < dayLimit) ? 92 : 35;
+                    segmentCost = Math.min(dayPartCost + eveningPartCost, currentMax);
                 }
             } else if (lotId === 'gaon' && (dayOfWeek === 5 || dayOfWeek === 6)) {
                 segmentCost = 40;
@@ -181,16 +180,16 @@
             current = segmentEnd;
         }
 
-        const diff = Math.floor((now - initialEntry) / 60000);
-        const days = Math.floor(diff / 1440);
-        const hours = Math.floor((diff % 1440) / 60);
-        const minutes = diff % 60;
+        const totalMinutes = Math.floor((now - initialEntry) / 60000);
+        const d = Math.floor(totalMinutes / 1440);
+        const h = Math.floor((totalMinutes % 1440) / 60);
+        const m = totalMinutes % 60;
 
         resultDiv.style.display = "block";
         resultDiv.innerHTML = `
             <div>סה"כ לתשלום:</div>
             <span class="price-display">${totalCost.toFixed(2)} ₪</span>
-            <div class="time-display">שהייה: ${days} ימים, ${hours} שעות ו-${minutes} דקות</div>
+            <div class="time-display">שהייה: ${d} ימים, ${h} שעות ו-${m} דקות</div>
         `;
     }
 </script>
