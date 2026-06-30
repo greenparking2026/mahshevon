@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מחשבון חניונים מתקדם</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0fdf4; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        .calculator-card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(34, 139, 34, 0.15); width: 100%; max-width: 500px; border-top: 8px solid #2e7d32; }
+        h2 { color: #1b5e20; margin-bottom: 25px; font-size: 24px; text-align: center; }
+        .input-group { margin-bottom: 20px; text-align: right; }
+        label { display: block; font-weight: 600; margin-bottom: 8px; color: #388e3c; }
+        select, input { width: 100%; padding: 12px; border: 2px solid #e8f5e9; border-radius: 10px; box-sizing: border-box; font-size: 16px; outline: none; transition: border-color 0.3s; }
+        select:focus, input:focus { border-color: #66bb6a; }
+        button { width: 100%; padding: 15px; background-color: #2e7d32; color: white; border: none; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; transition: background 0.3s; margin-top: 10px; }
+        button:hover { background-color: #1b5e20; }
+        #result { margin-top: 25px; padding: 20px; border-radius: 12px; font-weight: bold; display: none; line-height: 1.6; text-align: center; }
+        .price-display { color: #2e7d32; font-size: 32px; display: block; margin-bottom: 5px; }
+        .time-display { color: #666; font-size: 16px; font-weight: normal; border-top: 1px solid #c8e6c9; padding-top: 10px; margin-top: 10px; }
+        .info { font-size: 13px; color: #666; margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px; text-align: right; }
+    </style>
+</head>
+<body>
+
+<div class="calculator-card">
+    <h2>מחשבון עלות חניון</h2>
+    
+    <div class="input-group">
+        <label for="parkingLot">בחר חניון (לפי א"ב):</label>
+        <select id="parkingLot">
+            <option value="" disabled selected>-- בחר חניון מהרשימה --</option>
+            <option value="ben_yehuda">בן יהודה</option>
+            <option value="gav_yam">פארק גב ים חולון</option>
+            <option value="oasis">חניון אואזיס</option>
+            <option value="opera">חניון האופרה</option>
+            <option value="boursa">חניון הבורסה</option>
+            <option value="bezrano">חניון בז'רנו</option>
+            <option value="gaon">חניון בית גאון</option>
+            <option value="bloomfield">חניון בלומפילד</option>
+            <option value="bar_kochva">חניון בר כוכבא</option>
+            <option value="gibor">חניון גיבור ספורט</option>
+            <option value="ginat">חניון גינת השרון</option>
+            <option value="hakimi">חניון דוד חכמי 16</option>
+            <option value="haduvdevan">חניון הדובדבן קרית אונו</option>
+            <option value="hamasgar">חניון המסגר</option>
+            <option value="yerushalayim">חניון ירושלים</option>
+            <option value="klal">חניון כלל</option>
+            <option value="lev_hapark">חניון לב הפארק</option>
+            <option value="lloyd">חניון לויד ג'ורג'</option>
+            <option value="city_givatayim">חניון סיטי גבעתיים</option>
+            <option value="ein_yaakov">חניון עין יעקב</option>
+            <option value="elite">חניון צומת עלית</option>
+            <option value="karlibach">חניון קרליבך</option>
+            <option value="stampfer">חניון שטמפפר</option>
+            <option value="talmi">חניון תלמי</option>
+        </select>
+    </div>
+
+    <div class="input-group">
+        <label for="entryTime">זמן כניסה לחניון:</label>
+        <input type="datetime-local" id="entryTime">
+    </div>
+
+    <button onclick="calculateTotal()">חשב עלות וזמן שהייה</button>
+
+    <div id="result"></div>
+
+   	<div style="text-align: center; font-family: Arial, sans-serif; font-size: 24px; font-weight: bold; color: #333;">
+   	<span>השעה הנוכחית: </span>
+    	<span id="local-clock">00:00</span>
+	</div>
+</div>
+
+<script>
+    const parkingData = {
+        ben_yehuda: { type: 'tiered', tiers: [{m: 180, r: 0.45}, {m: 240, r: 0.35}], max: 90 },
+        gav_yam: { type: 'tiered', tiers: [{m: 60, r: 0.45}, {m: 200, r: 0.45}], max: 80 },
+        oasis: { type: 'tiered', tiers: [{m: 180, r: 0.4}], max: 72 },
+        opera: { type: 'tiered', tiers: [{m: 240, r: 0.5}], max: 120 },
+        bezrano: { type: 'hourly', first: 18, extra15: 7, max: 67 },
+        gaon: { type: 'hourly', first: 18, extra15: 6, max: 64, weekendRate: 40 },
+        bloomfield: { type: 'tiered', tiers: [{m: 120, r: 0.35}, {m: 180, r: 0.2}], max: 54 },
+        bar_kochva: { type: 'hourly', first: 17, extra15: 6, max: 80 },
+        gibor: { type: 'hourly', first: 30, extra15: 7, max: 93 },
+        ginat: { type: 'tiered', tiers: [{m: 30, r: 0.6}, {m: 180, r: 0.5}], max: 93, evening: {start: 19, rate: 0.35, max: 50} },
+        hakimi: { type: 'tiered', tiers: [{m: 180, r: 0.4}], max: 81 },
+        haduvdevan: { type: 'tiered', tiers: [{m: 120, r: 0.35}, {m: 180, r: 0.3}], max: 60 },
+        hamasgar: { type: 'hourly', first: 20, extra15: 6, max: 50 },
+        yerushalayim: { type: 'hourly', first: 18, extra15: 6, max: 64 },
+        klal: { type: 'tiered', tiers: [{m: 30, r: 0.6}, {m: 180, r: 0.5}], max: 93, evening: {start: 19, rate: 0.35, max: 50} },
+        lev_hapark: { type: 'tiered', tiers: [{m: 30, r: 0.4}, {m: 60, r: 0.25}, {m: 120, r: 0.3}, {m: 180, r: 0.2}], max: 49.5 },
+        lloyd: { type: 'tiered', tiers: [{m: 30, r: 0.5}, {m: 180, r: 0.4}, {m: 240, r: 0.2}], max: 87 },
+        city_givatayim: { type: 'tiered', tiers: [{m: 200, r: 0.45}], max: 90 },
+        ein_yaakov: { type: 'tiered', tiers: [{m: 180, r: 0.25}, {m: 220, r: 0.25}], max: 55 },
+        elite: { type: 'tiered', tiers: [{m: 60, r: 0.35}, {m: 180, r: 0.4}], max: 69 },
+        karlibach: { type: 'hourly', first: 22, extra15: 7, max: 80 },
+        stampfer: { type: 'tiered', tiers: [{m: 60, r: 0.45}, {m: 180, r: 0.4}], max: 75 },
+        talmi: { type: 'tiered', tiers: [{m: 60, r: 0.35}, {m: 180, r: 0.4}, {m: 240, r: 0.3}], max: 87, evening: {start: 19, rate: 0.35, max: 50} },
+        boursa: { type: 'boursa_special' }
+    };
+
+    function calculateTotal() {
+        const lotId = document.getElementById('parkingLot').value;
+        const entryInput = document.getElementById('entryTime').value;
+        const resultDiv = document.getElementById('result');
+
+        if (!lotId || !entryInput) { alert("אנא בחר חניון והזן שעת כניסה"); return; }
+
+        const initialEntry = new Date(entryInput);
+        let current = new Date(initialEntry);
+        const end = new Date();
+        
+        if (current > end) { alert("זמן הכניסה לא יכול להיות בעתיד"); return; }
+
+        let totalCost = 0;
+        const data = parkingData[lotId];
+
+        // לוגיקה של סבב יומי מצטבר
+        while (current < end) {
+            let nextCycle = new Date(current);
+            nextCycle.setHours(6, 0, 0, 0);
+            if (nextCycle <= current) nextCycle.setDate(nextCycle.getDate() + 1);
+            
+            let segmentEnd = new Date(Math.min(end, nextCycle));
+            let mins = Math.floor((segmentEnd - current) / 60000);
+            let dayOfWeek = current.getDay(); 
+            let startHour = current.getHours();
+
+            let segmentCost = 0;
+
+            if (lotId === 'boursa') {
+                if ((dayOfWeek >= 0 && dayOfWeek <= 4 && startHour >= 16) || (dayOfWeek === 5 && startHour >= 6 && startHour < 15) || (dayOfWeek === 6 && startHour >= 19)) {
+                    segmentCost = Math.min(mins * 0.35, 35);
+                } else {
+                    segmentCost = Math.min(mins * 0.55, 92);
+                }
+            } else if (lotId === 'gaon' && (dayOfWeek === 5 || dayOfWeek === 6)) {
+                segmentCost = 40; 
+            } else if (data.evening && startHour >= data.evening.start) {
+                segmentCost = Math.min(mins * data.evening.rate, data.evening.max);
+            } else {
+                if (data.type === 'tiered') {
+                    let rem = mins; let lastM = 0;
+                    for (let t of data.tiers) {
+                        let inT = Math.min(rem, t.m - lastM);
+                        if (inT > 0) { segmentCost += inT * t.r; rem -= inT; lastM = t.m; }
+                    }
+                    if (rem > 0) segmentCost += rem * data.tiers[data.tiers.length - 1].r;
+                } else if (data.type === 'hourly') {
+                    segmentCost = (mins <= 60) ? data.first : data.first + (Math.ceil((mins - 60) / 15) * data.extra15);
+                }
+                segmentCost = Math.min(segmentCost, data.max);
+            }
+
+            totalCost += segmentCost;
+            current = segmentEnd;
+        }
+
+        // חישוב זמן שהייה כולל לפורמט הנדרש
+        const totalMinutesFinal = Math.floor((end - initialEntry) / 60000);
+        const days = Math.floor(totalMinutesFinal / 1440);
+        const hours = Math.floor((totalMinutesFinal % 1440) / 60);
+        const minutes = totalMinutesFinal % 60;
+
+        resultDiv.style.display = "block";
+        resultDiv.style.backgroundColor = "#e8f5e9";
+        resultDiv.style.color = "#2e7d32";
+        resultDiv.style.border = "1px solid #c8e6c9";
+        
+        resultDiv.innerHTML = `
+            <div>סה"כ לתשלום מצטבר:</div>
+            <span class="price-display">${totalCost.toFixed(2)} ₪</span>
+            <div class="time-display">
+                זמן שהייה: ${days} ימים, ${hours} שעות ו-${minutes} דקות
+            </div>
+        `;
+    }
+</script>
+<script>
+//הצגת השעה הנוכחית למטה
+    function showTime() {
+        const now = new Date();
+        // מושך את השעה והדקות מהמחשב בפורמט של 24 שעות (למשל 14:35)
+        const timeString = now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit', hour12: false });
+        document.getElementById('local-clock').textContent = timeString;
+    }
+    showTime(); // הפעלה מיידית עם טעינת הדף
+    setInterval(showTime, 1000); // עדכון אוטומטי בכל שנייה
+</script>
+</body>
+</html>
